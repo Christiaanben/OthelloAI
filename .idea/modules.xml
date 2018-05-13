@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/OthelloAI.iml" filepath="$PROJECT_DIR$/.idea/OthelloAI.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../quori/.idea/quori.iml" filepath="$PROJECT_DIR$/../quori/.idea/quori.iml" />
     </modules>
   </component>
 </project>

@@ -9,14 +9,26 @@ import random
 
 class AI:
 
-    def __init__(self, player, n_hidden_nodes=16):
-        self.weight1 = np.zeros((n_hidden_nodes-1, 64))
-        for i in range(len(self.weight1)):
-            for j in range(len(self.weight1[i])):
-                self.weight1[i, j] = random.random()
-        self.weight2 = np.ones((n_hidden_nodes-1, n_hidden_nodes))
+    def __init__(self, player, n_hidden_nodes=16, weight1=None, weight2=None, weight3=None):
+        if weight1 == None:
+            print('No weight 1 supplied')
+            self.weight1 = np.zeros((n_hidden_nodes-1, 64))
+            for i in range(len(self.weight1)):
+                for j in range(len(self.weight1[i])):
+                    self.weight1[i, j] = random.random()
+        else:
+            self.weight1 = weight1
+        self.weight2 = np.zeros((n_hidden_nodes-1, n_hidden_nodes))
+        for i in range(len(self.weight2)):
+            for j in range(len(self.weight2[i])):
+                self.weight2[i, j] = random.random()
         self.weight3 = np.ones((64,n_hidden_nodes))
+        for i in range(len(self.weight3)):
+            for j in range(len(self.weight3[i])):
+                self.weight3[i, j] = random.random()
         self.player = player
+
+
 
     def get_next_move(self, board):
         input_layer = np.reshape(board, 64)
