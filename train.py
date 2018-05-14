@@ -2,8 +2,8 @@ from Othello import Othello
 from Othello import AI
 import numpy as np
 
-n_ai = 10000
-n_winners = 100
+n_ai = 5000
+n_winners = 50
 ai_winners = None
 
 generation = 0
