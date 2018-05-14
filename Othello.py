@@ -39,7 +39,10 @@ class AI:
         return self.weight1, self.weight2
 
     def get_next_move(self, board):
-        input_layer = np.reshape((self.player*board), 64)
+        board = (self.player*board)
+        value_per_quadrant = Othello.quadrant_value(board)
+        board_x = rotate(np.argmax(value_per_quadrant))
+        input_layer = np.reshape(board, 64)
         x = self.sigmoid(np.dot(self.weight1, input_layer))
         x = np.append(x, 1)
         y = self.sigmoid(np.dot(self.weight2, x))
@@ -110,6 +113,21 @@ class Othello:
             for j in range(8):
                 self.board[i][j] = board[i][j]
 
+    @staticmethod
+    def quadrant_value(board):
+        q = [[],[],[],[]]
+        for i in range(8):
+            for j in range(8):
+                index = 2*int(i / 4) + int(j / 4)
+                q[index].append(board[i, j])
+        value = np.zeros(4)
+        for i in range(4):
+            unique, counts = np.unique(q[i], return_counts=True)
+            dictionary = dict(zip(unique, counts))
+            if 1 in dictionary:
+                value[i] = dictionary[1]
+        return value
+
     def play(self, ai, player=1):
         ai.set_player(-player)
 
@@ -152,7 +170,7 @@ class Othello:
     def display(self):
         print(self.board)
 
-    def play_self(self, player1, player2):
+    def play_self(self, player1, player2, display_board = False):
         black = player2
         white = player1
         if random.random() < 0.5:
@@ -166,12 +184,18 @@ class Othello:
             moved = False
             if self.any_move(black.get_player()):
                 row, col = black.get_next_move(self.board)
+                if display_board:
+                    self.display()
+                    print('AI put a ' + str(black.get_player()) + ' at (' + str(row) + ',' + str(col) + ')')
                 if not self.check_move(row, col, black.get_player())[0]:
                     return white
                 moved = True
                 self.make_move(row, col, black.get_player())
             if self.any_move(white.get_player()):
                 row, col = white.get_next_move(self.board)
+                if display_board:
+                    self.display()
+                    print('AI put a ' + str(white.get_player()) + ' at (' + str(row) + ',' + str(col) + ')')
                 if not self.check_move(row, col, white.get_player())[0]:
                     return black
                 moved = True
