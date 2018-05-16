@@ -29,6 +29,9 @@ class AI:
     def get_name(self):
         return self.name
 
+    def set_name(self, name):
+        self.name = name
+
     def set_player(self, player):
         self.player = player
 
@@ -63,8 +66,8 @@ class AI:
             nodes[i] = 1/(1+np.exp(nodes[i]))
         return nodes
 
-    def mutate(self):
-        # Mutations occur on intervals of 0.8%
+    def mutate(self, chance=0.01):
+        # Mutations occur on intervals of 0.4%
         # Mutations:
         # 1. Replace weight with completely new weight
         # 2. Scale it by some random factor
@@ -75,25 +78,25 @@ class AI:
         for i in range(len(weight1)):
             for j in range(len(weight1[i])):
                 prob = random.random()
-                if prob < 0.002:
-                    weight1[i, j] = random.random()
-                elif prob < 0.004:
-                    weight1[i, j] = weight1[i, j] * (random.random()-0.5)
-                elif prob < 0.006:
-                    weight1[i, j] = weight1[i, j] + random.random()*2 - 1
-                elif prob < 0.008:
+                if prob < chance*1/4:
+                    weight1[i, j] = 2*random.random() - 1
+                elif prob < chance*2/4:
+                    weight1[i, j] = weight1[i, j] * (2 * random.random() - 1)
+                elif prob < chance*3/4:
+                    weight1[i, j] = weight1[i, j] + random.random() - 0.5
+                elif prob < chance:
                     weight1[i, j] = -1 * weight1[i, j]
                 weight1[i, j] = max(-10.0, min(10.0, weight1[i, j]))
         for i in range(len(weight2)):
             for j in range(len(weight2[i])):
                 prob = random.random()
-                if prob < 0.002:
-                    weight2[i, j] = random.random()
-                elif prob < 0.004:
-                    weight2[i, j] = weight2[i, j] * (random.random()-0.5)
-                elif prob < 0.006:
-                    weight2[i, j] = weight2[i, j] + random.random()*2 - 1
-                elif prob < 0.008:
+                if prob < 0.005:
+                    weight2[i, j] = 2*random.random() - 1
+                elif prob < 0.01:
+                    weight2[i, j] = weight2[i, j] * (2 * random.random() - 1)
+                elif prob < 0.015:
+                    weight2[i, j] = weight2[i, j] + random.random() - 0.5
+                elif prob < 0.020:
                     weight2[i, j] = -1 * weight2[i, j]
                 weight2[i, j] = max(-10.0, min(10.0, weight2[i, j]))
         return weight1, weight2
