@@ -179,7 +179,7 @@ class Othello:
                 self.display()
                 row, col = list(map(int, input('Input:').split(',')))
                 print('Player put a '+str(player)+' at ('+str(row)+','+str(col)+')')
-                if not self.check_move(row, col, player):
+                if not self.check_move(row, col, player)[0]:
                     print('AI wins')
                     return
                 self.make_move(row, col, player)

@@ -2,13 +2,28 @@ from Othello import Othello
 from Othello import AI
 import numpy as np
 
-n_ai = 151
-n_winners = 50
-# TODO implement restart function
-restart = False
+n_ai = 1000
+n_winners = 100
+restart = True
 ai_winners = None
 winner_of_generation = []
 generation = 0
+
+if restart:
+    file = open('weights\\best_gen.txt', 'w')
+    file.close()
+else:
+    ai_winners = []
+    for i in range(n_winners):
+        w1 = np.load('weights\weight-{:03d}-1.npy'.format(i))
+        w2 = np.load('weights\weight-{:03d}-2.npy'.format(i))
+        ai_winners.append(AI(weight1=w1, weight2=w2))
+        file = open('weights\\best_gen.txt', 'r')
+    for line in file:
+        w1 = np.load('weights\weight-Gen{:03d}-1.npy'.format(int(line)))
+        w2 = np.load('weights\weight-Gen{:03d}-2.npy'.format(int(line)))
+        winner_of_generation.append(AI(weight1=w1, weight2=w2))
+        generation = int(line)
 while True:
     generation += 1
     print('Generation '+str(generation)+':')
@@ -45,6 +60,9 @@ while True:
     # Adds the best AI of this generation to the list of contenders
     if ai_winners[0] not in winner_of_generation and (score[winners[0]]/(len(ai)-1)) > 0.65:
         winner_of_generation.append(ai_winners[0])
+        file = open('weights\\best_gen.txt', 'a')
+        file.write(str(generation)+'\n')
+        file.close()
 
     # Store top player of each generation and the latest winners
     weight1, weight2 = ai_winners[0].get_weights()
