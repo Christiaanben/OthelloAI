@@ -1,9 +1,6 @@
 import numpy as np
 import random
 
-
-from pandas._libs.hashtable import na_sentinel
-
 '''
 1's represent white tiles
 -1's represent black tiles
@@ -64,8 +61,8 @@ class AI:
             alpha = 0.03
             # Output layer error term
             rotated_available = np.reshape(Othello.rotate(available_moves, n_rotations), 64)
-            output_expected = output_layer * rotated_available
-            output_error = output_layer - output_expected
+            # output_expected = output_layer * rotated_available
+            output_error = output_layer - rotated_available
 
             # Hidden layer error term
             hidden_error = hidden_layer[1:] * (1 - hidden_layer[1:]) * np.dot(output_error, self.weight2.T[:, 1:])
@@ -173,9 +170,10 @@ class Othello:
                     moved = True
                     self.make_move(row, col, ai.get_player())
             wait = True
-            if self.any_move(player):
+            available, moves = self.any_move(player)
+            if available:
                 self.display()
-                row, col = game.get_from_board(self)
+                row, col = game.get_from_board(self, moves)
                 # row, col = list(map(int, input('Input:').split(',')))
                 print('Player put a '+str(player)+' at ('+str(row)+','+str(col)+')')
                 if not self.check_move(row, col, player)[0]:
@@ -363,7 +361,7 @@ class Game:
         self.win = pygame.display.set_mode((400, 400))
         pygame.display.set_caption('Othello AI')
 
-    def get_from_board(self, game):
+    def get_from_board(self, game, moves):
         width = 50
         height = 50
 
@@ -387,5 +385,8 @@ class Game:
                         pygame.draw.circle(self.win, (255, 255, 255), (i*width+25, j*height+25), 20)
                     if game.board[i, j] == -1:
                         pygame.draw.circle(self.win, (0, 0, 0), (i*width+25, j*height+25), 20)
-
+            loc = pygame.mouse.get_pos()
+            row, col = int(loc[0] / 50), int(loc[1] / 50)
+            if moves[row, col] == 1:
+                pygame.draw.circle(self.win, (0, 75, 0), (row * width + 25, col * height + 25), 20)
             pygame.display.update()
