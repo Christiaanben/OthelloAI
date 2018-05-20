@@ -1,6 +1,9 @@
 import numpy as np
 import random
 
+
+from pandas._libs.hashtable import na_sentinel
+
 '''
 1's represent white tiles
 -1's represent black tiles
@@ -8,19 +11,13 @@ import random
 
 
 class AI:
-    def __init__(self, player=None, name=None, n_hidden_nodes=100, weight1=None, weight2=None):
+    def __init__(self, player=None, name=None, n_hidden_nodes=64, weight1=None, weight2=None):
         if weight1 is None:
-            self.weight1 = np.zeros((n_hidden_nodes, 2*64))
-            for i in range(len(self.weight1)):
-                for j in range(len(self.weight1[i])):
-                    self.weight1[i, j] = random.random()*2 - 1
+            self.weight1 = 2*np.random.random((64+1, n_hidden_nodes)) - 1
         else:
             self.weight1 = weight1
         if weight2 is None:
-            self.weight2 = np.zeros((64, n_hidden_nodes+1))
-            for i in range(len(self.weight2)):
-                for j in range(len(self.weight2[i])):
-                    self.weight2[i, j] = random.random()*2 - 1
+            self.weight2 = 2 * np.random.random((n_hidden_nodes+1, 64)) - 1
         else:
             self.weight2 = weight2
         self.player = player
@@ -46,18 +43,44 @@ class AI:
         self.weight2 = weight2
 
     def get_next_move(self, board, available_moves):
-        board = (self.player*board)
-        n_rotations = np.argmax(Othello.quadrant_value(board))
-        rotated_board = Othello.rotate(board, n_rotations)
-        rotated_moves = Othello.rotate(available_moves, n_rotations)
-        input_layer = np.reshape(rotated_board, 64)
-        input_layer = np.append(input_layer, np.reshape(rotated_moves, 64))
-        x = self.sigmoid(np.dot(self.weight1, input_layer))
-        x = np.append(x, 1)
-        y = self.sigmoid(np.dot(self.weight2, x))
-        rotated_output = np.reshape(y, (8, 8))
-        output = Othello.rotate(rotated_output, (4-n_rotations) % 4)
-        index = np.unravel_index(output.argmax(), output.shape)
+        # Normalize input
+
+        np.set_printoptions(precision=5, suppress=True)
+        my_board = (self.player*board)
+        n_rotations = np.argmax(quadrant_value(my_board))
+        rotated_board = Othello.rotate(my_board, n_rotations)
+        for i in range(20):
+            # Forward phase
+            input_layer = np.append(1, np.reshape(rotated_board, 64))
+            hidden_layer = np.append(1, self.sigmoid(np.dot(input_layer, self.weight1)))
+            output_layer = np.dot(hidden_layer, self.weight2)
+
+            # Denormalize output
+            output = Othello.rotate(np.reshape(output_layer, (8, 8)), (4-n_rotations) % 4)
+            index = np.unravel_index(output.argmax(), output.shape)
+            if available_moves[index] == 1:
+                return index
+
+            alpha = 0.03
+            # Output layer error term
+            rotated_available = np.reshape(Othello.rotate(available_moves, n_rotations), 64)
+            output_expected = output_layer * rotated_available
+            output_error = output_layer - output_expected
+
+            # Hidden layer error term
+            hidden_error = hidden_layer[1:] * (1 - hidden_layer[1:]) * np.dot(output_error, self.weight2.T[:, 1:])
+
+            # partial derivatives
+            hidden_pd = input_layer[:, np.newaxis] * hidden_error[np.newaxis, :]
+            output_pd = hidden_layer[:, np.newaxis] * output_error[np.newaxis, :]
+
+            # average for total gradients
+            total_hidden_gradient = np.average(hidden_pd, axis=0)
+            total_output_gradient = np.average(output_pd, axis=0)
+
+            # update weights
+            self.weight1 += - alpha * total_hidden_gradient
+            self.weight2 += - alpha * total_output_gradient
         return index
 
     @staticmethod
@@ -90,13 +113,13 @@ class AI:
         for i in range(len(weight2)):
             for j in range(len(weight2[i])):
                 prob = random.random()
-                if prob < 0.005:
+                if prob < chance*1/4:
                     weight2[i, j] = 2*random.random() - 1
-                elif prob < 0.01:
+                elif prob < chance*2/4:
                     weight2[i, j] = weight2[i, j] * (2 * random.random() - 1)
-                elif prob < 0.015:
+                elif prob < chance*3/4:
                     weight2[i, j] = weight2[i, j] + random.random() - 0.5
-                elif prob < 0.020:
+                elif prob < chance:
                     weight2[i, j] = -1 * weight2[i, j]
                 weight2[i, j] = max(-10.0, min(10.0, weight2[i, j]))
         return weight1, weight2
@@ -125,63 +148,40 @@ class Othello:
             board = np.array(list(rotated))
         return board
 
-    @staticmethod
-    def quadrant_value(board):
-        '''
-        Quadrants look like this:
-        0|3
-        1|2
-        so that i can rotate easily
-        :param board:
-        :return:
-        '''
-        q = [[], [], [], []]
-        for i in range(8):
-            for j in range(8):
-                row, col = int(i / 4), int(j / 4)
-                index = int(np.abs(row - 3*col))
-                q[index].append(board[i, j])
-        value = np.zeros(4)
-        for i in range(4):
-            unique, counts = np.unique(q[i], return_counts=True)
-            dictionary = dict(zip(unique, counts))
-            if 1 in dictionary:
-                value[i] = dictionary[1]
-        return value
+
 
     def play(self, ai, player=1):
+        game = Game()
         ai.set_player(-player)
 
+        wait = True
         if player == -1:
-            if self.any_move(player):
-                self.display()
-                row, col = list(map(int, input('Input:').split(',')))
-                print('Player put a '+str(player)+' at ('+str(row)+','+str(col)+')')
-                if not self.check_move(row, col, player):
-                    print('AI wins')
-                    return
-                self.make_move(row, col, player)
+            wait = False
 
         moved = True
         while moved:
             moved = False
-            available, moves = self.any_move(ai.get_player())
-            if available:
-                self.display()
-                row, col = ai.get_next_move(self.board, moves)
-                print('AI put a '+str(ai.get_player())+' at ('+str(row)+','+str(col)+')')
-                if not self.check_move(row, col, ai.get_player())[0]:
-                    print('Player wins')
-                    return
-                moved = True
-                self.make_move(row, col, ai.get_player())
+            if wait:
+                available, moves = self.any_move(ai.get_player())
+                if available:
+                    self.display()
+                    row, col = ai.get_next_move(self.board, moves)
+                    print('AI put a '+str(ai.get_player())+' at ('+str(row)+','+str(col)+')')
+                    if not self.check_move(row, col, ai.get_player())[0]:
+                        print('Player wins')
+                        return
+                    moved = True
+                    self.make_move(row, col, ai.get_player())
+            wait = True
             if self.any_move(player):
                 self.display()
-                row, col = list(map(int, input('Input:').split(',')))
+                row, col = game.get_from_board(self)
+                # row, col = list(map(int, input('Input:').split(',')))
                 print('Player put a '+str(player)+' at ('+str(row)+','+str(col)+')')
                 if not self.check_move(row, col, player)[0]:
                     print('AI wins')
                     return
+                moved = True
                 self.make_move(row, col, player)
         result = self.get_result()
         if result[player] >= result[ai.get_player()]:
@@ -192,7 +192,7 @@ class Othello:
     def display(self):
         print(self.board)
 
-    def play_self(self, player1, player2, display_board = False):
+    def play_self(self, player1, player2, display_board=False):
         black = player2
         white = player1
         if random.random() < 0.5:
@@ -231,7 +231,8 @@ class Othello:
 
     def get_result(self):
         unique, counts = np.unique(self.board, return_counts=True)
-        return dict(zip(unique, counts))
+        base = {-1: 0, 1: 0}
+        return {**base, **dict(zip(unique, counts))}
 
     def get_board(self):
         return self.board
@@ -264,6 +265,9 @@ class Othello:
                 if self.board[tile[0], tile[1]] == 0:
                     break
                 tile = np.add(tile, delta)
+                if not 0 <= tile[0] < 8 or not 0 <= tile[1] < 8:
+                    tile = np.subtract(tile, delta)
+                    break
             if self.board[tile[0], tile[1]] == player:
                 valid = True
                 tile = np.subtract(tile, delta)
@@ -324,3 +328,64 @@ class Othello:
                     available = True
                     moves[i, j] = 1
         return available, moves
+
+
+def quadrant_value(board):
+    '''
+    Quadrants look like this:
+    0|3
+    1|2
+    so that i can rotate easily
+    :param board:
+    :return:
+    '''
+    q = [[], [], [], []]
+    for i in range(8):
+        for j in range(8):
+            row, col = int(i / 4), int(j / 4)
+            index = int(np.abs(row - 3*col))
+            q[index].append(board[i, j])
+    value = np.zeros(4)
+    for i in range(4):
+        unique, counts = np.unique(q[i], return_counts=True)
+        dictionary = dict(zip(unique, counts))
+        if 1 in dictionary:
+            value[i] = dictionary[1]
+    return value
+
+
+import pygame
+class Game:
+
+
+    def __init__(self):
+        pygame.init()
+        self.win = pygame.display.set_mode((400, 400))
+        pygame.display.set_caption('Othello AI')
+
+    def get_from_board(self, game):
+        width = 50
+        height = 50
+
+        run = True
+        while run:
+            pygame.time.delay(100)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+                    pygame.quit()
+                    return (-1, -1)
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    loc = pygame.mouse.get_pos()
+                    return int(loc[0]/50), int(loc[1]/50)
+
+            for i in range(8):
+                for j in range(8):
+                    pygame.draw.rect(self.win, (0, (j+i) % 2*50 + 50, 0), (i*width, j*height, width, height))
+                    if game.board[i, j] == 1:
+                        pygame.draw.circle(self.win, (255, 255, 255), (i*width+25, j*height+25), 20)
+                    if game.board[i, j] == -1:
+                        pygame.draw.circle(self.win, (0, 0, 0), (i*width+25, j*height+25), 20)
+
+            pygame.display.update()

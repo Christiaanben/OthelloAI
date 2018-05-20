@@ -2,8 +2,8 @@ from Othello import Othello
 from Othello import AI
 import numpy as np
 
-n_ai = 1000
-n_winners = 100
+n_ai = 350
+n_winners = 35
 restart = True
 ai_winners = None
 winner_of_generation = []
@@ -30,7 +30,7 @@ while True:
     ai = []
     for i in range(n_ai):
         if ai_winners is not None:
-            weight1, weight2 = ai_winners[int(i/(n_ai/n_winners))].mutate(chance=0.02)
+            weight1, weight2 = ai_winners[int(i/(n_ai/n_winners))].mutate(chance=0.004)
             if i % n_winners == 0:
                 weight1, weight2 = ai_winners[int(i / (n_ai / n_winners))].get_weights()
             ai.append(AI(name=i, weight1=weight1, weight2=weight2))
