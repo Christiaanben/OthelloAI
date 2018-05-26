@@ -2,8 +2,8 @@ from Othello import Othello
 from Othello import AI
 import numpy as np
 
-n_ai = 350
-n_winners = 35
+n_ai = 200
+n_winners = 10
 restart = True
 ai_winners = None
 winner_of_generation = []
@@ -30,7 +30,7 @@ while True:
     ai = []
     for i in range(n_ai):
         if ai_winners is not None:
-            weight1, weight2 = ai_winners[int(i/(n_ai/n_winners))].mutate(chance=0.004)
+            weight1, weight2 = ai_winners[int(i/(n_ai/n_winners))].mutate(chance=0.01)
             if i % n_winners == 0:
                 weight1, weight2 = ai_winners[int(i / (n_ai / n_winners))].get_weights()
             ai.append(AI(name=i, weight1=weight1, weight2=weight2))
@@ -55,10 +55,10 @@ while True:
     ai_winners = []
     for winner in winners:
         ai_winners.append(ai[winner])
-    print('Ai-{} won {} out of {} ({:.2f}%) games.'.format(winners[0], score[winners[0]], len(ai)-1, score[winners[0]]/(len(ai)-1)*100))
+    print('Ai-{} won {} out of {} ({:.2f}%) games.\n'.format(winners[0], score[winners[0]], len(ai)-1, score[winners[0]]/(len(ai)-1)*100))
 
     # Adds the best AI of this generation to the list of contenders
-    if ai_winners[0] not in winner_of_generation and (score[winners[0]]/(len(ai)-1)) > 0.65:
+    if ai_winners[0] not in winner_of_generation and (score[winners[0]]/(len(ai)-1)) > 0.625:
         winner_of_generation.append(ai_winners[0])
         file = open('weights\\best_gen.txt', 'a')
         file.write(str(generation)+'\n')
